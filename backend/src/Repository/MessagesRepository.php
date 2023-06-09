@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Messages;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -29,6 +30,15 @@ class MessagesRepository extends ServiceEntityRepository
             $this->getEntityManager()->flush();
         }
     }
+public function findConversationMessages(int $sender_id, int $receiver_id): array
+{
+    return $this->createQueryBuilder('m')
+        ->andWhere('(m.sender_id = :sender_id AND m.receiver_id = :receiver_id) OR (m.sender_id = :receiver_id AND m.receiver_id = :sender_id)')
+        ->setParameter('sender_id', $sender_id)
+        ->setParameter('receiver_id', $receiver_id)
+        ->getQuery()
+        ->getResult();
+}
 
     public function remove(Messages $entity, bool $flush = false): void
     {

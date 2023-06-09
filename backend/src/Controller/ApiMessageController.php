@@ -16,37 +16,49 @@ class ApiMessageController extends AbstractController
     #[Route('/apimessage', name: 'app_api_message', methods:['GET', 'POST'])]
     public function index(Request $request, MessagesRepository $messagesRepository, SerializerInterface $serializerInterface): Response
     {
-        $data = json_decode(
-            $request->getContent(),
-            true
-        );
-        $content = $data['content'];
-        $receiverId = $data['receiver_id'];
-    
-        $senderId = intval($this->getUser()->getId());
+    $data = json_decode(
+        $request->getContent(),
+        true
+    );
+    $content = $data['content'];
+    $receiverId = $data['receiver_id'];
+
+    $senderId = intval($this->getUser()->getId());
 
 
-        $message = new Messages();
-        $message->setContent($content);
-        
-        // Retrieve sender and receiver entities from their IDs
-        //$receiver = $receiverId;
-        $message->setSenderId($senderId);
-        $message->setReceiverId($receiverId);
-       
+    $message = new Messages();
+    $message->setContent($content);
 
-        // Persist the entity to the database
-        $messagesRepository->save($message, true);
-        dump($message);
-        
-        
-        $jsonContent = $serializerInterface->serialize($message, 'json');
-        $response = new JsonResponse($jsonContent, 200, [
-            'Content-Type' => 'application/json'
-        ]);
-        return $response;
-    }
+    // Retrieve sender and receiver entities from their IDs
+    //$receiver = $receiverId;
+    $message->setSenderId($senderId);
+    $message->setReceiverId($receiverId);
 
+
+
+    // Persist the entity to the database
+    $messagesRepository->save($message, true);
+    dump($message);
+
+
+  $conversationMessages = $messagesRepository->findConversationMessages($senderId, $receiverId);
+
+$messages = [];
+foreach ($conversationMessages as $message) {
+    $messages[] = [
+        'id' => $message->getId(),
+        'content' => $message->getContent(),
+        'sender_id' => $message->getSenderId(),
+        'receiver_id' => $message->getReceiverId(),
+    ];
+}
+
+$jsonContent = $serializerInterface->serialize($messages, 'json');
+$response = new JsonResponse($jsonContent, 200, [
+    'Content-Type' => 'application/json'
+]);
+return $response;
+}
 
     #[Route('/apiuser', name: 'app_user_api', methods: ['POST','GET'])]
     public function callUser (UserRepository $userRepository, SerializerInterface $serializerInterface): Response
