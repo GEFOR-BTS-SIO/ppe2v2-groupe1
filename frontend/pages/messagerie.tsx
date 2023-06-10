@@ -8,13 +8,13 @@ import { UserSelect } from "@/components/Users";
 type Message = {
   id: number;
   content: string;
-  receiver_id: number;
+  receiverId: number;
   sender_id: number;
 };
 
 type MessagerieFormData = {
   content: string;
-  receiver_id: number;
+  receiverId: number;
   sender_id: number;
 };
 
@@ -25,11 +25,19 @@ export function Messagerie() {
   const [messagesList, setMessagesList] = useState<Message[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number>();
 
+
+
   const { data: messagesListData = [], isLoading: messagesLoading } = useQuery<
-    Message[] >
-  const fetchMessage = async () => {
+    Message[] >({
+   queryKey: ["messages"],
+      queryFn: () => fetchMessages(),
+   refetchInterval: 1000,
+ });
+
+  const fetchMessages = async () => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/apimessage`,
+      `${process.env.NEXT_PUBLIC_API_URL}/apiconversation?receiverId=${selectedUserId}`,
+      
       {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -53,7 +61,7 @@ export function Messagerie() {
       `${process.env.NEXT_PUBLIC_API_URL}/apimessage`,
       {
         content: data.content,
-        receiver_id: selectedUserId,
+        receiverId: selectedUserId,
       },
       {
         headers: {

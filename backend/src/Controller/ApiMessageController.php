@@ -1,8 +1,8 @@
 <?php
 namespace App\Controller;
-use App\Entity\Messages;
+use App\Entity\Message;
 use App\Entity\User;
-use App\Repository\MessagesRepository;
+use App\Repository\MessageRepository;
 use App\Repository\UserRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,36 +14,57 @@ use Symfony\Component\Serializer\SerializerInterface;
 class ApiMessageController extends AbstractController
 {
   #[Route('/apimessage', name: 'app_api_message', methods:['GET', 'POST'])]
-public function index(Request $request, MessagesRepository $messagesRepository, SerializerInterface $serializerInterface): Response
+public function index(Request $request, MessageRepository $messageRepository, SerializerInterface $serializerInterface): Response
 {
     $data = json_decode($request->getContent(), true);
     $content = $data['content'] ?? null;
-    $receiverId = isset($data['receiver_id']) ? (int) $data['receiver_id'] : null;
+   $receiverId = isset($data['receiverId']) ? intval($data['receiverId']) : null;
+    $receiver = $messageRepository->find($receiverId);
 
 
-    $senderId = $this->getUser()->getId();
+    $sender = $this->getUser();
     $content = $data['content'] ?? '';
-    $message = new Messages();
+    $message = new Message();
     $message->setContent($content);
-    $message->setSenderId($senderId);
-    $message->setReceiverId($receiverId);
+    $message->setSender($sender);
+    $message->setReceiver($receiver);
 
     // Persist the entity to the database
-    $messagesRepository->save($message, true);
+    $messageRepository->save($message, true);
+    return new Response("", 201);
+}
 
-    $conversationMessages = $messagesRepository->findConversationMessages($senderId, $receiverId);
+#[Route('/apiconversation', name: 'app_api_conversation', methods:['GET'])]
+public function getMessage(Request $request, MessageRepository $messageRepository, SerializerInterface $serializerInterface): Response
+{
+    $receiverId = $request->query->get('receiverId'); 
+    if (!$receiverId){
+        return $this->json([]);
+    }
+       
+    $receiverId = isset($data['receiverId']) ? intval($data['receiverId']) : null;
+    $receiver = $messageRepository->find($receiverId);
+    $sender = $this->getUser();
+    $conversationMessages = $messageRepository->findBy([
+        'receiver' => $receiver,
+        'sender' => $sender,
+    ], [
+        'id' => 'ASC', // Or any other ordering criteria you want to use
+    ]);
+
 
     $messages = [];
 
     foreach ($conversationMessages as $conversationMessage) {
-        $messages = [
+        $messages[]= [
             'id' => $conversationMessage->getId(),
             'content' => $conversationMessage->getContent(),
-            'sender_id' => $conversationMessage->getSenderId(),
-            'receiver_id' => $conversationMessage->getReceiverId(),
-        ];
-         return $this->json($messages, 200,[]);
+            'sender' => $conversationMessage->getSender()->getId(),
+            'receiver' => $conversationMessage->getReceiver()->getId(),
+        ];  
     }
+
+    return $this->json($messages);
 
 dump($messages);
     //$jsonContent = $serializerInterface->serialize($messages, 'json');
