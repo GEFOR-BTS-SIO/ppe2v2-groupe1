@@ -1,54 +1,54 @@
 import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import axios from "axios";
-import { UserSelect } from "@/components/User";
+import { QueryClient, QueryClientProvider, useQuery } from "react-query";
+import { ReactQueryDevtools } from "react-query/devtools";
+import { UserSelect } from "@/components/Users";
 
 type Message = {
   id: number;
   content: string;
-  receiverId: number;
-  senderId: number;
+  receiver_id: number;
+  sender_id: number;
 };
 
 type MessagerieFormData = {
   content: string;
+  receiver_id: number;
+  sender_id: number;
 };
 
-export default function Messagerie() {
+const queryClient = new QueryClient();
+
+export function Messagerie() {
   const { register, handleSubmit, reset } = useForm<MessagerieFormData>();
-  const [selectedUserId, setSelectedUserId] = useState<number>();
   const [messagesList, setMessagesList] = useState<Message[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<number>();
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        if (selectedUserId) {
-          const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/apimessage`,
-            { receiver_id: selectedUserId },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-          const messages = response.data;
-          setMessagesList(messages);
-        }
-      } catch (error) {
-        console.log(error);
+  const { data: messagesListData = [], isLoading: messagesLoading } = useQuery<
+    Message[] >
+  const fetchMessage = async () => {
+    const response = await axios.get(
+      `${process.env.NEXT_PUBLIC_API_URL}/apimessage`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       }
-    };
+    );
+    return response.data;
+  };
 
-    fetchMessages();
-  }, [selectedUserId]);
+
+
+
 
   const handleUserSelected = (userId: number) => {
     setSelectedUserId(userId);
   };
 
- const onSubmit = async (data: MessagerieFormData) => {
-  try {
+
+  const onSubmit = async (data: MessagerieFormData) => {
     const response = await axios.post(
       `${process.env.NEXT_PUBLIC_API_URL}/apimessage`,
       {
@@ -69,64 +69,49 @@ export default function Messagerie() {
     setMessagesList([...messagesList, newMessage]);
 
     reset();
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-
-
+  };
 
   return (
-    <div className="bg-blue-100 min-h-screen">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="mb-4">
-            {messagesList.map((message) => (
-              <div
-                key={message.id} // Ajoutez cette ligne pour spécifier la prop "key"
-                className={`p-4 rounded-lg ${
-                  message.receiverId === selectedUserId
-                    ? "bg-orange-200 flex justify-start"
-                    : "bg-blue-200 flex justify-end"
-                }`}
-              >
-                <p
-                  className={
-                    message.receiverId === selectedUserId
-                      ? "text-orange-900"
-                      : "text-blue-900"
-                  }
-                >
-                  {message.content}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="flex items-center mb-4">
-              <div className="mr-4">
-                <UserSelect onUserSelected={handleUserSelected} />
-              </div>
-              <div className="flex-grow">
-                <input
-                  {...register('content')}
-                  type="text"
-                  className="border border-gray-300 rounded-lg py-2 px-4 w-full focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="Message de test"
-                />
-              </div>
-              <button
-                type="submit"
-                className="ml-4 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
-                Envoyer
-              </button>
-            </div>
-          </form>
+    <div>
+      {messagesList.map((message: Message) => (
+        <div
+          key={message.id}
+          className={`flex justify-${
+            message.sender_id === selectedUserId ? "start" : "end"
+          }`}
+        >
+          <p>{message.content}</p>
         </div>
-      </div>
+      ))}
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <UserSelect onUserSelected={handleUserSelected} />
+        <label className="block mb-2">
+          Message de test:
+          <input
+            {...register("content")}
+            className="border border-gray-300 rounded px-2 py-1"
+          />
+        </label>
+        <button
+          type="submit"
+          className="bg-blue-500 text-white py-2 px-4 rounded"
+        >
+          Envoyer
+        </button>
+      </form>
+      <ReactQueryDevtools initialIsOpen={false} />
     </div>
   );
 }
+
+// Enveloppez votre application avec QueryClientProvider
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Messagerie />
+    </QueryClientProvider>
+  );
+}
+
+
+export default App;
