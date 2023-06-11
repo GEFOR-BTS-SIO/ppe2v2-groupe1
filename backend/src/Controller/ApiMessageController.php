@@ -13,14 +13,14 @@ use Symfony\Component\Serializer\SerializerInterface;
 
 class ApiMessageController extends AbstractController
 {
-  #[Route('/apimessage', name: 'app_api_message', methods:['GET', 'POST'])]
-public function index(Request $request, MessageRepository $messageRepository, SerializerInterface $serializerInterface): Response
+      #[Route('/apimessage', name: 'app_api_message', methods:['GET', 'POST'])]
+  public function index(Request $request, MessageRepository $messageRepository, UserRepository $userRepository, SerializerInterface $serializerInterface): Response
 {
+    
     $data = json_decode($request->getContent(), true);
     $content = $data['content'] ?? null;
-   $receiverId = isset($data['receiverId']) ? intval($data['receiverId']) : null;
-    $receiver = $messageRepository->find($receiverId);
-
+    $receiverId = isset($data['receiverId']) ? intval($data['receiverId']) : null;
+    $receiver = $userRepository->find($receiverId);
 
     $sender = $this->getUser();
     $content = $data['content'] ?? '';
@@ -31,46 +31,52 @@ public function index(Request $request, MessageRepository $messageRepository, Se
 
     // Persist the entity to the database
     $messageRepository->save($message, true);
+    
     return new Response("", 201);
 }
 
-#[Route('/apiconversation', name: 'app_api_conversation', methods:['GET'])]
-public function getMessage(Request $request, MessageRepository $messageRepository, SerializerInterface $serializerInterface): Response
-{
-    $receiverId = $request->query->get('receiverId'); 
-    if (!$receiverId){
-        return $this->json([]);
+ #[Route('/apiconversation', name: 'app_api_conversation', methods: ['GET'])]
+    public function getMessage(Request $request, MessageRepository $messageRepository, UserRepository $userRepository, SerializerInterface $serializerInterface): Response
+    {
+        $receiverId = $request->query->get('receiverId');
+
+        if (!$receiverId) {
+            return new JsonResponse(['error' => 'ReceiverId parameter is required'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $receiver = $userRepository->find($receiverId);
+
+        if (!$receiver) {
+            return new JsonResponse(['error' => 'Receiver not found'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $sender = $this->getUser();
+
+        $conversationMessages = $messageRepository->findBy(
+            [
+                'receiver' => $receiver,
+                'sender' => $sender,
+            ],
+            [
+                'id' => 'ASC',
+            ]
+        );
+
+        $messages = [];
+
+        foreach ($conversationMessages as $conversationMessage) {
+            $messages[] = [
+                'id' => $conversationMessage->getId(),
+                'content' => $conversationMessage->getContent(),
+                'sender' => $conversationMessage->getSender()->getId(),
+                'receiver' => $conversationMessage->getReceiver()->getId(),
+            ];
+        }
+
+        $response = new JsonResponse($messages, Response::HTTP_OK);
+
+        return $response;
     }
-       
-    $receiverId = isset($data['receiverId']) ? intval($data['receiverId']) : null;
-    $receiver = $messageRepository->find($receiverId);
-    $sender = $this->getUser();
-    $conversationMessages = $messageRepository->findBy([
-        'receiver' => $receiver,
-        'sender' => $sender,
-    ], [
-        'id' => 'ASC', // Or any other ordering criteria you want to use
-    ]);
-
-
-    $messages = [];
-
-    foreach ($conversationMessages as $conversationMessage) {
-        $messages[]= [
-            'id' => $conversationMessage->getId(),
-            'content' => $conversationMessage->getContent(),
-            'sender' => $conversationMessage->getSender()->getId(),
-            'receiver' => $conversationMessage->getReceiver()->getId(),
-        ];  
-    }
-
-    return $this->json($messages);
-
-dump($messages);
-    //$jsonContent = $serializerInterface->serialize($messages, 'json');
-   
-}
-
 
 
     #[Route('/apiuser', name: 'app_user_api', methods: ['POST','GET'])]

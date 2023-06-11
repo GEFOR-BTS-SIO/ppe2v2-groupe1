@@ -13,6 +13,7 @@ class Message
     #[ORM\Column]
     private ?int $id = null;
 
+    
     #[ORM\ManyToOne(inversedBy: 'messagesReceived')]
     private ?User $receiver = null;
 
