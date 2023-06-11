@@ -81,7 +81,7 @@ export function Messagerie() {
 
   return (
     <div>
-      {messagesList.map((message: Message) => (
+      {messagesListData.map((message: Message) => (
         <div
           key={message.id}
           className={`flex justify-${
