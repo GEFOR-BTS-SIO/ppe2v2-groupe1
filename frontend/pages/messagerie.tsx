@@ -80,29 +80,31 @@ export function Messagerie() {
   };
 
   return (
-    <div>
-      {messagesList.map((message: Message) => (
+    <div className="max-w-md mx-auto p-4">
+      {messagesListData.map((message) => (
         <div
           key={message.id}
           className={`flex justify-${
             message.sender_id === selectedUserId ? "start" : "end"
           }`}
         >
-          <p>{message.content}</p>
+          <p className="bg-blue-500 text-white py-2 px-4 rounded">
+            {message.content}
+          </p>
         </div>
       ))}
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-4">
         <UserSelect onUserSelected={handleUserSelected} />
         <label className="block mb-2">
           Message de test:
           <input
             {...register("content")}
-            className="border border-gray-300 rounded px-2 py-1"
+            className="border border-gray-300 rounded px-2 py-1 mt-2"
           />
         </label>
         <button
           type="submit"
-          className="bg-blue-500 text-white py-2 px-4 rounded"
+          className="bg-blue-500 text-white py-2 px-4 rounded mt-2"
         >
           Envoyer
         </button>
