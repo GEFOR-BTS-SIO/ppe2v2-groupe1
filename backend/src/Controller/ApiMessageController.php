@@ -50,13 +50,12 @@ class ApiMessageController extends AbstractController
             return new JsonResponse(['error' => 'Receiver not found'], Response::HTTP_BAD_REQUEST);
         }
         $sender = $this->getUser();
-      $messagesISent = $messageRepository->findBy(['sender' => $sender,
-                                             'receiver'=> $receiver,
-                                          ]);
-      $messagesIReceived = $messageRepository->findBy(['receiver'=> $sender, 'sender' => $receiver]);
+ 
 
       
-        $conversationMessages= [$messagesISent,$messagesIReceived];
+        $conversationMessages= $messageRepository->findBy(['sender' => $sender,
+                                             'receiver'=> $receiver,
+                                          ]);
         $messages = [];
 
         foreach ($conversationMessages as $conversationMessage) {
